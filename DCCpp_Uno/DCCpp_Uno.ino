@@ -432,8 +432,8 @@ void setup(){
 // DCC++ BASE STATION was otherwise processing.  But once inside the interrupt, all other interrupt routines are temporarily diabled.
 // Since a short pulse only lasts for 116 microseconds, and there are TWO separate interrupts
 // (one for Main Track Registers and one for the Program Track Registers), the interrupt code must complete
-// in much less than 58 microsends, otherwise there would be no time for the rest of the program to run.  Worse, if the logic
-// of the interrupt code ever caused it to run longer than 58 microsends, an interrupt trigger would be missed, the OCNA and OCNB
+// in much less than 58 microseconds, otherwise there would be no time for the rest of the program to run.  Worse, if the logic
+// of the interrupt code ever caused it to run longer than 58 microseconds, an interrupt trigger would be missed, the OCNA and OCNB
 // registers would not be updated, and the net effect would be a DCC signal that keeps sending the same DCC bit repeatedly until the
 // interrupt code completes and can be called again.
 
@@ -442,7 +442,7 @@ void setup(){
 
 // Note that we need to create two very similar copies of the code --- one for the Main Track OC1B interrupt and one for the
 // Programming Track OCOB interrupt.  But rather than create a generic function that incurrs additional overhead, we create a macro
-// that can be invoked with proper paramters for each interrupt.  This slightly increases the size of the code base by duplicating
+// that can be invoked with proper parameters for each interrupt.  This slightly increases the size of the code base by duplicating
 // some of the logic for each interrupt, but saves additional time.
 
 // As structured, the interrupt code below completes at an average of just under 6 microseconds with a worse-case of just under 11 microseconds
