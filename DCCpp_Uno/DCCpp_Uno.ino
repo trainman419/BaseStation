@@ -385,7 +385,11 @@ void setup(){
   pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);   // master enable for motor channel B
 
   progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
-      
+
+#if MOTOR_SHIELD_TYPE == 2
+  // On VHN5019, enable Output Compare A match interrupt.
+  bitSet(TIMSK0,OCIE0A);    // enable interrupt vector for Timer 1 Output Compare A Match (OCR1A)
+#endif
   bitSet(TIMSK0,OCIE0B);    // enable interrupt vector for Timer 0 Output Compare B Match (OCR0B)
 
 #else      // Configuration for MEGA
@@ -566,9 +570,9 @@ void showConfiguration(){
 #if MOTOR_SHIELD_TYPE != 2
   Serial.print("\n\nDCC SIG MAIN: ");
   Serial.print(DCC_SIGNAL_PIN_MAIN);
-#endif
   Serial.print("\n   DIRECTION: ");
   Serial.print(DIRECTION_MOTOR_CHANNEL_PIN_A);
+#endif
   Serial.print("\n      ENABLE: ");
   Serial.print(SIGNAL_ENABLE_PIN_MAIN);
   Serial.print("\n     CURRENT: ");
@@ -577,9 +581,9 @@ void showConfiguration(){
 #if MOTOR_SHIELD_TYPE != 2
   Serial.print("\n\nDCC SIG PROG: ");
   Serial.print(DCC_SIGNAL_PIN_PROG);
-#endif
   Serial.print("\n   DIRECTION: ");
   Serial.print(DIRECTION_MOTOR_CHANNEL_PIN_B);
+#endif
   Serial.print("\n      ENABLE: ");
   Serial.print(SIGNAL_ENABLE_PIN_PROG);
   Serial.print("\n     CURRENT: ");
