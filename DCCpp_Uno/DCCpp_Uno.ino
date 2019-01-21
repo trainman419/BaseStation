@@ -281,6 +281,28 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER1 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER1 927
 
+#if MOTOR_SHIELD_TYPE == 2
+  pinMode(2, OUTPUT); // IN1A
+  pinMode(4, OUTPUT); // IN1B
+  pinMode(6, OUTPUT); // EN1
+  pinMode(9, OUTPUT); // PWM1
+
+  digitalWrite(2, LOW); // IN1A
+  digitalWrite(4, LOW); // IN1B
+  digitalWrite(6, HIGH); // EN1
+  digitalWrite(9, HIGH); // PWM1
+
+  pinMode(7, OUTPUT); // IN2A
+  pinMode(8, OUTPUT); // IN2B
+  pinMode(10, OUTPUT); // PWM2
+  pinMode(12, OUTPUT); // EN2
+
+  digitalWrite(7, LOW); // IN2A
+  digitalWrite(8, LOW); // IN2B
+  digitalWrite(10, LOW); // PWM2
+  digitalWrite(12, LOW); // EN2
+#endif // MOTOR_SHIELD_TYPE
+
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
 
@@ -291,8 +313,10 @@ void setup(){
   bitSet(TCCR1B,WGM12);
   bitSet(TCCR1B,WGM13);
 
+#if MOTOR_SHEILD_TYPE != 2
   bitSet(TCCR1A,COM1B1);    // set Timer 1, OC1B (pin 10/UNO, pin 12/MEGA) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR1A,COM1B0);
+#endif
 
   bitClear(TCCR1B,CS12);    // set Timer 1 prescale=1
   bitClear(TCCR1B,CS11);
@@ -331,8 +355,10 @@ void setup(){
   bitSet(TCCR0A,WGM01);
   bitSet(TCCR0B,WGM02);
      
+#if MOTOR_SHEILD_TYPE != 2
   bitSet(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR0A,COM0B0);
+#endif
 
   bitClear(TCCR0B,CS02);    // set Timer 0 prescale=64
   bitSet(TCCR0B,CS01);
@@ -370,8 +396,10 @@ void setup(){
   bitSet(TCCR3B,WGM32);
   bitSet(TCCR3B,WGM33);
 
+#if MOTOR_SHEILD_TYPE != 2
   bitSet(TCCR3A,COM3B1);    // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR3A,COM3B0);
+#endif
 
   bitClear(TCCR3B,CS32);    // set Timer 3 prescale=1
   bitClear(TCCR3B,CS31);
@@ -386,7 +414,7 @@ void setup(){
       
   bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
   
-#endif
+#endif // Arduino type
 
 } // setup
 
@@ -455,7 +483,18 @@ void setup(){
 // NOW USE THE ABOVE MACRO TO CREATE THE CODE FOR EACH INTERRUPT
 
 ISR(TIMER1_COMPB_vect){              // set interrupt service for OCR1B of TIMER-1 which flips direction bit of Motor Shield Channel A controlling Main Track
+#if MOTOR_SHIELD_TYPE == 2
+  digitalWrite(2, HIGH);
+  digitalWrite(4, LOW);
+#endif
   DCC_SIGNAL(mainRegs,1)
+}
+
+ISR(TIMER1_COMPA_vect){              // set interrupt service for OCR1B of TIMER-1 which flips direction bit of Motor Shield Channel A controlling Main Track
+#if MOTOR_SHIELD_TYPE == 2
+  digitalWrite(2, LOW);
+  digitalWrite(4, HIGH);
+#endif
 }
 
 #ifdef ARDUINO_AVR_UNO      // Configuration for UNO
