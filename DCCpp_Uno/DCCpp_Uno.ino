@@ -284,23 +284,21 @@ void setup(){
 #if MOTOR_SHIELD_TYPE == 2
   pinMode(2, OUTPUT); // IN1A
   pinMode(4, OUTPUT); // IN1B
-  pinMode(6, OUTPUT); // EN1
   pinMode(9, OUTPUT); // PWM1
 
   digitalWrite(2, LOW); // IN1A
   digitalWrite(4, LOW); // IN1B
-  digitalWrite(6, HIGH); // EN1
   digitalWrite(9, HIGH); // PWM1
 
   pinMode(7, OUTPUT); // IN2A
   pinMode(8, OUTPUT); // IN2B
   pinMode(10, OUTPUT); // PWM2
-  pinMode(12, OUTPUT); // EN2
+  //pinMode(12, OUTPUT); // EN2
 
   digitalWrite(7, LOW); // IN2A
   digitalWrite(8, LOW); // IN2B
   digitalWrite(10, LOW); // PWM2
-  digitalWrite(12, LOW); // EN2
+  //digitalWrite(12, LOW); // EN2
 #else
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
@@ -314,8 +312,10 @@ void setup(){
   bitSet(TCCR1B,WGM13);
 
 #if MOTOR_SHIELD_TYPE == 2
-  bitClear(TCCR1A,COM1B1);    // set Timer 1, OC1B (pin 10/UNO, pin 12/MEGA) to inverting toggle (actual direction is arbitrary)
+  bitClear(TCCR1A,COM1B1);
   bitClear(TCCR1A,COM1B0);
+  bitClear(TCCR1A,COM1A1);
+  bitClear(TCCR1A,COM1A0);
 #else
   bitSet(TCCR1A,COM1B1);    // set Timer 1, OC1B (pin 10/UNO, pin 12/MEGA) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR1A,COM1B0);
@@ -329,6 +329,7 @@ void setup(){
   OCR1B=DCC_ONE_BIT_PULSE_DURATION_TIMER1;
   
   pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);   // master enable for motor channel A
+  digitalWrite(SIGNAL_ENABLE_PIN_MAIN,HIGH);
 
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
@@ -365,8 +366,10 @@ void setup(){
   bitSet(TCCR0B,WGM02);
      
 #if MOTOR_SHIELD_TYPE == 2
-  bitClear(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
+  bitClear(TCCR0A,COM0B1);
   bitClear(TCCR0A,COM0B0);
+  bitClear(TCCR0A,COM0A1);
+  bitClear(TCCR0A,COM0A0);
 #else
   bitSet(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR0A,COM0B0);
@@ -504,18 +507,29 @@ ISR(TIMER1_COMPB_vect){              // set interrupt service for OCR1B of TIMER
   DCC_SIGNAL(mainRegs,1)
 }
 
-ISR(TIMER1_COMPA_vect){              // set interrupt service for OCR1B of TIMER-1 which flips direction bit of Motor Shield Channel A controlling Main Track
 #if MOTOR_SHIELD_TYPE == 2
+ISR(TIMER1_COMPA_vect){
   digitalWrite(2, LOW);
   digitalWrite(4, HIGH);
-#endif
 }
+#endif
 
 #ifdef ARDUINO_AVR_UNO      // Configuration for UNO
 
 ISR(TIMER0_COMPB_vect){              // set interrupt service for OCR1B of TIMER-0 which flips direction bit of Motor Shield Channel B controlling Prog Track
+#if MOTOR_SHIELD_TYPE == 2
+  digitalWrite(7, HIGH);
+  digitalWrite(8, LOW);
+#endif
   DCC_SIGNAL(progRegs,0)
 }
+
+#if MOTOR_SHIELD_TYPE == 2
+ISR(TIMER0_COMPA_vect){
+  digitalWrite(7, LOW);
+  digitalWrite(8, HIGH);
+}
+#endif
 
 #else      // Configuration for MEGA
 
