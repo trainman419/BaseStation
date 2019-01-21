@@ -296,7 +296,7 @@ void setup(){
 
   digitalWrite(7, LOW); // IN2A
   digitalWrite(8, LOW); // IN2B
-  digitalWrite(10, LOW); // PWM2
+  digitalWrite(10, HIGH); // PWM2
 #else
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
@@ -327,7 +327,6 @@ void setup(){
   OCR1B=DCC_ONE_BIT_PULSE_DURATION_TIMER1;
   
   pinMode(SIGNAL_ENABLE_PIN_MAIN,OUTPUT);   // master enable for motor channel A
-  digitalWrite(SIGNAL_ENABLE_PIN_MAIN,HIGH);
 
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
