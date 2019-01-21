@@ -30,8 +30,10 @@ Part of DCC++ BASE STATION for the Arduino
 
   #define ARDUINO_TYPE    "UNO"
 
+#if MOTOR_SHIELD_TYPE != 2
   #define DCC_SIGNAL_PIN_MAIN 10          // Ardunio Uno  - uses OC1B
   #define DCC_SIGNAL_PIN_PROG 5           // Arduino Uno  - uses OC0B
+#endif
 
   #if COMM_INTERFACE != 0                 // Serial was not selected
 
@@ -43,8 +45,10 @@ Part of DCC++ BASE STATION for the Arduino
 
   #define ARDUINO_TYPE    "MEGA"
 
+#if MOTOR_SHIELD_TYPE != 2
   #define DCC_SIGNAL_PIN_MAIN 12          // Arduino Mega - uses OC1B
   #define DCC_SIGNAL_PIN_PROG 2           // Arduino Mega - uses OC3B
+#endif
 
 #else
 

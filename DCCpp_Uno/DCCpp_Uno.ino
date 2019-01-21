@@ -301,19 +301,22 @@ void setup(){
   digitalWrite(8, LOW); // IN2B
   digitalWrite(10, LOW); // PWM2
   digitalWrite(12, LOW); // EN2
-#endif // MOTOR_SHIELD_TYPE
-
+#else
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
 
   pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);      // THIS ARDUINO OUPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
+#endif // MOTOR_SHIELD_TYPE
 
   bitSet(TCCR1A,WGM10);     // set Timer 1 to FAST PWM, with TOP=OCR1A
   bitSet(TCCR1A,WGM11);
   bitSet(TCCR1B,WGM12);
   bitSet(TCCR1B,WGM13);
 
-#if MOTOR_SHEILD_TYPE != 2
+#if MOTOR_SHIELD_TYPE == 2
+  bitClear(TCCR1A,COM1B1);    // set Timer 1, OC1B (pin 10/UNO, pin 12/MEGA) to inverting toggle (actual direction is arbitrary)
+  bitClear(TCCR1A,COM1B0);
+#else
   bitSet(TCCR1A,COM1B1);    // set Timer 1, OC1B (pin 10/UNO, pin 12/MEGA) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR1A,COM1B0);
 #endif
@@ -329,7 +332,11 @@ void setup(){
 
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
-  bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)    
+#if MOTOR_SHIELD_TYPE == 2  
+  // On VHN5019, enable Output Compare A match interrupt.
+  bitSet(TIMSK1,OCIE1A);    // enable interrupt vector for Timer 1 Output Compare A Match (OCR1A)
+#endif
+  bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)
 
   // CONFIGURE EITHER TIMER_0 (UNO) OR TIMER_3 (MEGA) TO OUTPUT 50% DUTY CYCLE DCC SIGNALS ON OC0B (UNO) OR OC3B (MEGA) INTERRUPT PINS
   
@@ -345,17 +352,22 @@ void setup(){
 
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER0 28
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER0 14
-  
+
+#if MOTOR_SHIELD_TYPE != 2  
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
 
   pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
+#endif
 
   bitSet(TCCR0A,WGM00);     // set Timer 0 to FAST PWM, with TOP=OCR0A
   bitSet(TCCR0A,WGM01);
   bitSet(TCCR0B,WGM02);
      
-#if MOTOR_SHEILD_TYPE != 2
+#if MOTOR_SHIELD_TYPE == 2
+  bitClear(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
+  bitClear(TCCR0A,COM0B0);
+#else
   bitSet(TCCR0A,COM0B1);    // set Timer 0, OC0B (pin 5) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR0A,COM0B0);
 #endif
@@ -386,17 +398,19 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
 
+#if MOTOR_SHIELD_TYPE != 2
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
 
   pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
+#endif
 
   bitSet(TCCR3A,WGM30);     // set Timer 3 to FAST PWM, with TOP=OCR3A
   bitSet(TCCR3A,WGM31);
   bitSet(TCCR3B,WGM32);
   bitSet(TCCR3B,WGM33);
 
-#if MOTOR_SHEILD_TYPE != 2
+#if MOTOR_SHIELD_TYPE != 2
   bitSet(TCCR3A,COM3B1);    // set Timer 3, OC3B (pin 2) to inverting toggle (actual direction is arbitrary)
   bitSet(TCCR3A,COM3B0);
 #endif
@@ -535,8 +549,10 @@ void showConfiguration(){
   Serial.print("\n\nMOTOR SHIELD: ");
   Serial.print(MOTOR_SHIELD_NAME);
   
+#if MOTOR_SHIELD_TYPE != 2
   Serial.print("\n\nDCC SIG MAIN: ");
   Serial.print(DCC_SIGNAL_PIN_MAIN);
+#endif
   Serial.print("\n   DIRECTION: ");
   Serial.print(DIRECTION_MOTOR_CHANNEL_PIN_A);
   Serial.print("\n      ENABLE: ");
@@ -544,8 +560,10 @@ void showConfiguration(){
   Serial.print("\n     CURRENT: ");
   Serial.print(CURRENT_MONITOR_PIN_MAIN);
 
+#if MOTOR_SHIELD_TYPE != 2
   Serial.print("\n\nDCC SIG PROG: ");
   Serial.print(DCC_SIGNAL_PIN_PROG);
+#endif
   Serial.print("\n   DIRECTION: ");
   Serial.print(DIRECTION_MOTOR_CHANNEL_PIN_B);
   Serial.print("\n      ENABLE: ");
