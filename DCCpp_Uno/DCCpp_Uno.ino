@@ -507,8 +507,8 @@ void setup(){
 
 ISR(TIMER1_COMPB_vect){              // set interrupt service for OCR1B of TIMER-1 which flips direction bit of Motor Shield Channel A controlling Main Track
 #if MOTOR_SHIELD_TYPE == 2
-  digitalWrite(2, HIGH);
   digitalWrite(4, LOW);
+  digitalWrite(2, HIGH);
 #endif
   DCC_SIGNAL(mainRegs,1)
 }
@@ -519,6 +519,7 @@ ISR(TIMER1_COMPA_vect){
   digitalWrite(4, HIGH);
 }
 #endif
+
 
 #ifdef ARDUINO_AVR_UNO      // Configuration for UNO
 
