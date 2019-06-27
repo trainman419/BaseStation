@@ -50,6 +50,13 @@ Part of DCC++ BASE STATION for the Arduino
   #define DCC_SIGNAL_PIN_PROG 2           // Arduino Mega - uses OC3B
 #endif
 
+#elif defined ARDUINO_AVR_LEONARDO
+
+  #define ARDUINO_TYPE "Leonardo"
+
+  #define DCC_SIGNAL_PIN_MAIN 10          // Arduino Leonardo PB6 / OC1B / OC4B
+  #define DCC_SIGNAL_PIN_PROG 5           // Arduino Leonardo PC6 / OC3A / !OC4A
+
 #else
 
   #error CANNOT COMPILE - DCC++ ONLY WORKS WITH AN ARDUINO UNO OR AN ARDUINO MEGA 1280/2560
@@ -88,7 +95,7 @@ Part of DCC++ BASE STATION for the Arduino
 
 #elif MOTOR_SHIELD_TYPE == 2
 
-  #define MOTOR_SHIELD_NAME "POLOLU VHN5019 MOTOR SHIELD"
+  #define MOTOR_SHIELD_NAME "IBT-2 MOTOR DRIVER"
 
   #define SIGNAL_ENABLE_PIN_MAIN 6
   #define SIGNAL_ENABLE_PIN_PROG 12
@@ -96,8 +103,17 @@ Part of DCC++ BASE STATION for the Arduino
   #define CURRENT_MONITOR_PIN_MAIN A0
   #define CURRENT_MONITOR_PIN_PROG A1
 
-#else
+#elif MOTOR_SHIELD_TYPE == 3
 
+  #define MOTOR_SHIELD_NAME "DCC++  PCB"
+
+  #define SIGNAL_ENABLE_PIN_MAIN 3  // PD0
+  #define SIGNAL_ENABLE_PIN_PROG 11 // PB7
+
+  #define CURRENT_MONITOR_PIN_MAIN A0 // PF7
+  #define CURRENT_MONITOR_PIN_PROG A1 // PF6
+
+#else
   #error CANNOT COMPILE - PLEASE SELECT A PROPER MOTOR SHIELD TYPE
 
 #endif

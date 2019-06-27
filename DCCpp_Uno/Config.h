@@ -13,9 +13,10 @@ Part of DCC++ BASE STATION for the Arduino
 //
 //  0 = ARDUINO MOTOR SHIELD          (MAX 18V/2A PER CHANNEL)
 //  1 = POLOLU MC33926 MOTOR SHIELD   (MAX 28V/3A PER CHANNEL)
-//  2 = POLOLU VNH5019 MOTOR SHIELD   (MAX 24V/12A PER CHANNEL)
+//  2 = IBT-2                         (MAX 24V/10A PER CHANNEL)
+//  3 = DCC++ PCB                     (MAX 24V/??A PER CHANNEL)
 
-#define MOTOR_SHIELD_TYPE   2
+#define MOTOR_SHIELD_TYPE   3
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

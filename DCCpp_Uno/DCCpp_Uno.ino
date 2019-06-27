@@ -297,6 +297,8 @@ void setup(){
   digitalWrite(7, LOW); // IN2A
   digitalWrite(8, LOW); // IN2B
   digitalWrite(10, HIGH); // PWM2
+#elif MOTOR_SHIELD_TYPE == 3
+  pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);
 #else
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
@@ -331,7 +333,7 @@ void setup(){
   mainRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
 #if MOTOR_SHIELD_TYPE == 2  
-  // On VHN5019, enable Output Compare A match interrupt.
+  // On IBT-2, enable Output Compare A match interrupt.
   bitSet(TIMSK1,OCIE1A);    // enable interrupt vector for Timer 1 Output Compare A Match (OCR1A)
 #endif
   bitSet(TIMSK1,OCIE1B);    // enable interrupt vector for Timer 1 Output Compare B Match (OCR1B)
@@ -389,7 +391,7 @@ void setup(){
 #endif
   bitSet(TIMSK0,OCIE0B);    // enable interrupt vector for Timer 0 Output Compare B Match (OCR0B)
 
-#else      // Configuration for MEGA
+#elif defined ARDUINO_AVR_MEGA      // Configuration for MEGA
 
   // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
   // Controlled by Arduino 16-bit TIMER 3 / OC3B Interrupt Pin
@@ -402,7 +404,7 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
 
-#if MOTOR_SHIELD_TYPE != 2
+#if MOTOR_SHIELD_TYPE != 2  
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
 
@@ -436,7 +438,52 @@ void setup(){
   progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1    
       
   bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
-  
+#elif defined ARDUINO_AVR_LEONARDO
+  // Directon Pin for Motor Shield Channel B - PROGRAMMING TRACK
+  // Controlled by Arduino 8-bit TIMER 0 / OC3A Interrupt Pin
+  // TODO: Values for 8-bit OCR0A and OCR0B registers calibrated for 1:64 prescale at 16 MHz clock frequency
+  // TODO: Resulting waveforms are 200 microseconds for a ZERO bit and 116 microseconds for a ONE bit with as-close-as-possible to 50% duty cycle
+
+  #define DCC_ZERO_BIT_TOTAL_DURATION_TIMER3 3199
+  #define DCC_ZERO_BIT_PULSE_DURATION_TIMER3 1599
+
+  #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
+  #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
+
+#if MOTOR_SHIELD_TYPE == 3
+  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);
+#elif MOTOR_SHIELD_TYPE != 2  
+  pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
+  digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
+
+  pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
+#endif
+
+  bitSet(TCCR3A,WGM30);     // set Timer 3 to FAST PWM, with TOP=OCR3A
+  bitSet(TCCR3A,WGM31);
+  bitSet(TCCR3B,WGM32);
+  bitSet(TCCR3B,WGM33);
+
+  bitClear(TCCR3A,COM3B1);
+  bitClear(TCCR3A,COM3B0);
+  bitClear(TCCR3A,COM3A1);
+  bitClear(TCCR3A,COM3A0);
+
+  bitClear(TCCR3B,CS32);    // set Timer 3 prescale=1
+  bitClear(TCCR3B,CS31);
+  bitSet(TCCR3B,CS30);
+    
+  OCR3A=DCC_ONE_BIT_TOTAL_DURATION_TIMER3;
+  OCR3B=DCC_ONE_BIT_PULSE_DURATION_TIMER3;
+ 
+  pinMode(SIGNAL_ENABLE_PIN_PROG,OUTPUT);   // master enable for motor channel B
+
+  progRegs.loadPacket(1,RegisterList::idlePacket,2,0);    // load idle packet into register 1 
+
+  bitSet(TIMSK3,OCIE3A);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3A)    
+  bitSet(TIMSK3,OCIE3B);    // enable interrupt vector for Timer 3 Output Compare B Match (OCR3B)    
+#else
+#error Unknown Arduino type
 #endif // Arduino type
 
 } // setup
@@ -538,11 +585,26 @@ ISR(TIMER0_COMPA_vect){
 }
 #endif
 
-#else      // Configuration for MEGA
+#elif defined ARDUINO_AVR_MEGA      // Configuration for MEGA
 
 ISR(TIMER3_COMPB_vect){              // set interrupt service for OCR3B of TIMER-3 which flips direction bit of Motor Shield Channel B controlling Prog Track
   DCC_SIGNAL(progRegs,3)
 }
+
+#elif defined ARDUINO_AVR_LEONARDO
+
+ISR(TIMER3_COMPA_vect){ // set interrupt service for OCR3A of TIMER-3 which flips direction bit of Motor Shield Channel B controlling Prog Track
+  digitalWrite(DCC_SIGNAL_PIN_PROG, HIGH);
+}
+
+ISR(TIMER3_COMPB_vect){ // set interrupt service for OCR3B of TIMER-3 which flips direction bit of Motor Shield Channel B controlling Prog Track
+  digitalWrite(DCC_SIGNAL_PIN_PROG, LOW);
+  DCC_SIGNAL(progRegs,3)
+}
+
+#else
+
+#error Unknown Arduino Type
 
 #endif
 
@@ -570,7 +632,7 @@ void showConfiguration(){
   Serial.print("\n\nMOTOR SHIELD: ");
   Serial.print(MOTOR_SHIELD_NAME);
   
-#if MOTOR_SHIELD_TYPE != 2
+#if MOTOR_SHIELD_TYPE < 2
   Serial.print("\n\nDCC SIG MAIN: ");
   Serial.print(DCC_SIGNAL_PIN_MAIN);
   Serial.print("\n   DIRECTION: ");
@@ -581,7 +643,7 @@ void showConfiguration(){
   Serial.print("\n     CURRENT: ");
   Serial.print(CURRENT_MONITOR_PIN_MAIN);
 
-#if MOTOR_SHIELD_TYPE != 2
+#if MOTOR_SHIELD_TYPE < 2
   Serial.print("\n\nDCC SIG PROG: ");
   Serial.print(DCC_SIGNAL_PIN_PROG);
   Serial.print("\n   DIRECTION: ");
