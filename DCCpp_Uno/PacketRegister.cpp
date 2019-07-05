@@ -116,6 +116,8 @@ void RegisterList::setThrottle(char *s) volatile{
     b[nB++]=highByte(cab) | 0xC0;      // convert train number into a two-byte address
     
   b[nB++]=lowByte(cab);
+  
+  #ifdef SPEED_128
   b[nB++]=0x3F;                        // 128-step speed control byte
   if(tSpeed>=0) 
     b[nB++]=tSpeed+(tSpeed>0)+tDirection*128;   // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
@@ -123,6 +125,14 @@ void RegisterList::setThrottle(char *s) volatile{
     b[nB++]=1;
     tSpeed=0;
   }
+  #else
+  // 28-speed step control byte
+  tSpeed /= 4;
+  if(tSpeed > 31) {
+    tSpeed = 31;
+  }
+  b[nB++] = 0b01000000 | (tDirection?0b00100000:0) | (tSpeed&0b00011111);
+  #endif
        
   loadPacket(nReg,b,nB,0,1);
   
@@ -211,6 +221,8 @@ void RegisterList::readCV(char *s) volatile{
   int bValue;
   int c,d,base;
   int cv, callBack, callBackSub;
+  int reading = 0;
+  int total[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   if(sscanf(s,"%d %d %d",&cv,&callBack,&callBackSub)!=3)          // cv = 1-1024
     return;    
@@ -222,7 +234,6 @@ void RegisterList::readCV(char *s) volatile{
   bValue=0;
   
   for(int i=0;i<8;i++){
-    
     c=0;
     d=0;
     base=0;
@@ -238,7 +249,9 @@ void RegisterList::readCV(char *s) volatile{
     loadPacket(0,resetPacket,2,1);          // forces code to wait until all repeats of bRead are completed (and decoder begins to respond)
 
     for(int j=0;j<ACK_SAMPLE_COUNT;j++){
-      c=(analogRead(CURRENT_MONITOR_PIN_PROG)-base)*ACK_SAMPLE_SMOOTHING+c*(1.0-ACK_SAMPLE_SMOOTHING);
+      reading = analogRead(CURRENT_MONITOR_PIN_PROG)-base;
+      c=(reading)*ACK_SAMPLE_SMOOTHING+c*(1.0-ACK_SAMPLE_SMOOTHING);
+      total[i] += reading;
       if(c>ACK_SAMPLE_THRESHOLD)
         d=1;
     }
@@ -253,6 +266,7 @@ void RegisterList::readCV(char *s) volatile{
   for(int j=0;j<ACK_BASE_COUNT;j++)
     base+=analogRead(CURRENT_MONITOR_PIN_PROG);
   base/=ACK_BASE_COUNT;
+
   
   bRead[0]=0x74+(highByte(cv)&0x03);   // set-up to re-verify entire byte
   bRead[2]=bValue;  
@@ -260,13 +274,25 @@ void RegisterList::readCV(char *s) volatile{
   loadPacket(0,resetPacket,2,3);          // NMRA recommends starting with 3 reset packets
   loadPacket(0,bRead,3,5);                // NMRA recommends 5 verfy packets
   loadPacket(0,resetPacket,2,1);          // forces code to wait until all repeats of bRead are completed (and decoder begins to respond)
-    
+
+
   for(int j=0;j<ACK_SAMPLE_COUNT;j++){
-    c=(analogRead(CURRENT_MONITOR_PIN_PROG)-base)*ACK_SAMPLE_SMOOTHING+c*(1.0-ACK_SAMPLE_SMOOTHING);
+    reading = analogRead(CURRENT_MONITOR_PIN_PROG)-base;
+    c=(reading)*ACK_SAMPLE_SMOOTHING+c*(1.0-ACK_SAMPLE_SMOOTHING);
+    total[8] += reading;
     if(c>ACK_SAMPLE_THRESHOLD)
       d=1;
   }
-    
+  //INTERFACE.println();
+  INTERFACE.print("c totals ");
+  for( int i=0; i<9; i++) {
+    INTERFACE.print(total[i]);
+    INTERFACE.print(" ");
+  }
+  INTERFACE.println();
+  INTERFACE.print("verify value ");
+  INTERFACE.println(d);    
+
   if(d==0)    // verify unsuccessful
     bValue=-1;
 
