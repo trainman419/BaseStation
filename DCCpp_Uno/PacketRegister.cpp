@@ -98,6 +98,39 @@ void RegisterList::loadPacket(int nReg, byte *b, int nBytes, int nRepeat, int pr
 
 ///////////////////////////////////////////////////////////////////////////////
 
+// Speed step table for 28 speed step mode.
+const uint8_t SPEED_28[29] = {
+  0b00000, // Stop
+  0b00010, // 1
+  0b10010, // 2
+  0b00011, // 3
+  0b10011, // 4
+  0b00100, // 5
+  0b10100, // 6
+  0b00101, // 7
+  0b10101, // 8
+  0b00110, // 9
+  0b10110, // 10
+  0b00111, // 11
+  0b10111, // 12
+  0b01000, // 13
+  0b11000, // 14
+  0b01001, // 15
+  0b11001, // 16
+  0b01010, // 17
+  0b11010, // 18
+  0b01011, // 19
+  0b11011, // 20
+  0b01100, // 21
+  0b11100, // 22
+  0b01101, // 23
+  0b11101, // 24
+  0b01110, // 25
+  0b11110, // 26
+  0b01111, // 27
+  0b11111 // 28
+};
+
 void RegisterList::setThrottle(char *s) volatile{
   byte b[5];                      // save space for checksum byte
   int nReg;
@@ -119,19 +152,24 @@ void RegisterList::setThrottle(char *s) volatile{
   
   #ifdef SPEED_128
   b[nB++]=0x3F;                        // 128-step speed control byte
-  if(tSpeed>=0) 
-    b[nB++]=tSpeed+(tSpeed>0)+tDirection*128;   // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
-  else{
-    b[nB++]=1;
-    tSpeed=0;
+  if (tSpeed>=0) {
+    b[nB++] = tSpeed + 1 + tDirection*128;   // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+  } else {
+    b[nB++] = 1;
+    tSpeed = 0;
   }
   #else
   // 28-speed step control byte
-  tSpeed /= 4;
-  if(tSpeed > 31) {
-    tSpeed = 31;
+  if (tSpeed < 0) {
+    // E-stop
+    b[nB++] = 0b01000001;
+  } else {
+    tSpeed /= 4; // HACK: divide in coming speed by 4, to get from 126 to approximately 28 steps.
+    if(tSpeed > 28) {
+      tSpeed = 28;
+    }
+    b[nB++] = 0b01000000 | (tDirection?0b00100000:0) | (SPEED_28[tSpeed]&0b00011111);
   }
-  b[nB++] = 0b01000000 | (tDirection?0b00100000:0) | (tSpeed&0b00011111);
   #endif
        
   loadPacket(nReg,b,nB,0,1);
